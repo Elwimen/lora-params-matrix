@@ -1,1 +1,5 @@
+# Ignore locally generated output except the committed chart files
 *.png
+*.svg
+!lora_charts.png
+!lora_charts.svg

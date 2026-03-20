@@ -1,8 +1,15 @@
 #!/usr/bin/python3
 
+import argparse
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--png', action='store_true', help='Save chart as PNG')
+parser.add_argument('--svg', action='store_true', help='Save chart as SVG')
+parser.add_argument('--show', action='store_true', help='Display chart window')
+args = parser.parse_args()
 
 # SX1262 parameters
 TX_POWER = 22  # dBm (SX1262 max)
@@ -123,225 +130,223 @@ for i, bw in enumerate(BANDWIDTHS):
         toa_250byte_cr5[i, j] = calc_time_on_air(bw, sf, payload_bytes=250, cr=1)
         toa_250byte_cr8[i, j] = calc_time_on_air(bw, sf, payload_bytes=250, cr=4)
 
-# Create figure with six heatmaps
-fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(20, 14))
+if args.png or args.svg or args.show:
+    # Create figure with six heatmaps
+    fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(20, 14))
 
-# Plot 1: Link Budget Heatmap
-im1 = ax1.imshow(link_budget, cmap='viridis', aspect='auto')
-ax1.set_xticks(range(len(SF_RANGE)))
-ax1.set_xticklabels(SF_LABELS)
-ax1.set_yticks(range(len(BANDWIDTHS)))
-ax1.set_yticklabels(BANDWIDTH_LABELS)
-ax1.set_xlabel('Spreading Factor')
-ax1.set_ylabel('Bandwidth')
-ax1.set_title(f'LoRa Link Budget (SX1262 @ {TX_POWER} dBm)\nHigher = More Range')
+    # Plot 1: Link Budget Heatmap
+    im1 = ax1.imshow(link_budget, cmap='viridis', aspect='auto')
+    ax1.set_xticks(range(len(SF_RANGE)))
+    ax1.set_xticklabels(SF_LABELS)
+    ax1.set_yticks(range(len(BANDWIDTHS)))
+    ax1.set_yticklabels(BANDWIDTH_LABELS)
+    ax1.set_xlabel('Spreading Factor')
+    ax1.set_ylabel('Bandwidth')
+    ax1.set_title(f'LoRa Link Budget (SX1262 @ {TX_POWER} dBm)\nHigher = More Range')
 
-# Add value annotations
-for i in range(len(BANDWIDTHS)):
-    bw = BANDWIDTHS[i]
-    for j in range(len(SF_RANGE)):
-        sf = SF_RANGE[j]
-        val = link_budget[i, j]
+    # Add value annotations
+    for i in range(len(BANDWIDTHS)):
+        bw = BANDWIDTHS[i]
+        for j in range(len(SF_RANGE)):
+            sf = SF_RANGE[j]
+            val = link_budget[i, j]
 
-        cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
-        prefix = cr5_pfx + cr8_pfx
+            cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
+            prefix = cr5_pfx + cr8_pfx
 
-        txt = f'{prefix}{val:.0f}'
-        weight = 'bold' if marked else 'normal'
-        ax1.text(j, i, txt, ha='center', va='center',
-                 color='white' if val < 155 else 'black',
-                 fontsize=7, fontweight=weight)
+            txt = f'{prefix}{val:.0f}'
+            weight = 'bold' if marked else 'normal'
+            ax1.text(j, i, txt, ha='center', va='center',
+                     color='white' if val < 155 else 'black',
+                     fontsize=7, fontweight=weight)
 
-fig.colorbar(im1, ax=ax1, label='Link Budget (dB)')
+    fig.colorbar(im1, ax=ax1, label='Link Budget (dB)')
 
-# Plot 2: Bit Rate Heatmap (showing both CR 4/5 and CR 4/8)
-im2 = ax2.imshow(np.log10(bitrate_cr5 / 1000), cmap='plasma', aspect='auto')
-ax2.set_xticks(range(len(SF_RANGE)))
-ax2.set_xticklabels(SF_LABELS)
-ax2.set_yticks(range(len(BANDWIDTHS)))
-ax2.set_yticklabels(BANDWIDTH_LABELS)
-ax2.set_xlabel('Spreading Factor')
-ax2.set_ylabel('Bandwidth')
-ax2.set_title('LoRa Bit Rate\nCR 4/5 | CR 4/8')
+    # Plot 2: Bit Rate Heatmap (showing both CR 4/5 and CR 4/8)
+    im2 = ax2.imshow(np.log10(bitrate_cr5 / 1000), cmap='plasma', aspect='auto')
+    ax2.set_xticks(range(len(SF_RANGE)))
+    ax2.set_xticklabels(SF_LABELS)
+    ax2.set_yticks(range(len(BANDWIDTHS)))
+    ax2.set_yticklabels(BANDWIDTH_LABELS)
+    ax2.set_xlabel('Spreading Factor')
+    ax2.set_ylabel('Bandwidth')
+    ax2.set_title('LoRa Bit Rate\nCR 4/5 | CR 4/8')
 
-# Format helper function
-def fmt_bps(v):
-    if v >= 1000:
-        return f'{v/1000:.1f}k'
-    return f'{int(v)}'
+    def fmt_bps(v):
+        if v >= 1000:
+            return f'{v/1000:.1f}k'
+        return f'{int(v)}'
 
-# Add value annotations (both CR values)
-for i in range(len(BANDWIDTHS)):
-    bw = BANDWIDTHS[i]
-    for j in range(len(SF_RANGE)):
-        sf = SF_RANGE[j]
-        val5 = bitrate_cr5[i, j]
-        val8 = bitrate_cr8[i, j]
+    # Add value annotations (both CR values)
+    for i in range(len(BANDWIDTHS)):
+        bw = BANDWIDTHS[i]
+        for j in range(len(SF_RANGE)):
+            sf = SF_RANGE[j]
+            val5 = bitrate_cr5[i, j]
+            val8 = bitrate_cr8[i, j]
 
-        cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
+            cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
 
-        txt = f'{cr5_pfx}CR5:{fmt_bps(val5)}\n{cr8_pfx}CR8:{fmt_bps(val8)}'
-        weight = 'bold' if marked else 'normal'
-        ax2.text(j, i, txt, ha='center', va='center',
-                 color='white' if np.log10(val5/1000) < 1 else 'black',
-                 fontsize=6, fontweight=weight)
+            txt = f'{cr5_pfx}CR5:{fmt_bps(val5)}\n{cr8_pfx}CR8:{fmt_bps(val8)}'
+            weight = 'bold' if marked else 'normal'
+            ax2.text(j, i, txt, ha='center', va='center',
+                     color='white' if np.log10(val5/1000) < 1 else 'black',
+                     fontsize=6, fontweight=weight)
 
-cbar2 = fig.colorbar(im2, ax=ax2, label='Bit Rate (log₁₀ kbps)')
-cbar2.set_ticks([-2, -1, 0, 1, 2])
-cbar2.set_ticklabels(['10 bps', '100 bps', '1 kbps', '10 kbps', '100 kbps'])
+    cbar2 = fig.colorbar(im2, ax=ax2, label='Bit Rate (log₁₀ kbps)')
+    cbar2.set_ticks([-2, -1, 0, 1, 2])
+    cbar2.set_ticklabels(['10 bps', '100 bps', '1 kbps', '10 kbps', '100 kbps'])
 
-# Plot 3: Link Budget × Bit Rate (Figure of Merit)
-fom_cr5 = link_budget * bitrate_cr5
-fom_cr8 = link_budget * bitrate_cr8
-im3 = ax3.imshow(np.log10(fom_cr5), cmap='coolwarm', aspect='auto')
-ax3.set_xticks(range(len(SF_RANGE)))
-ax3.set_xticklabels(SF_LABELS)
-ax3.set_yticks(range(len(BANDWIDTHS)))
-ax3.set_yticklabels(BANDWIDTH_LABELS)
-ax3.set_xlabel('Spreading Factor')
-ax3.set_ylabel('Bandwidth')
-ax3.set_title('Link Budget × Bit Rate\n(Figure of Merit)')
+    # Plot 3: Link Budget × Bit Rate (Figure of Merit)
+    fom_cr5 = link_budget * bitrate_cr5
+    fom_cr8 = link_budget * bitrate_cr8
+    im3 = ax3.imshow(np.log10(fom_cr5), cmap='coolwarm', aspect='auto')
+    ax3.set_xticks(range(len(SF_RANGE)))
+    ax3.set_xticklabels(SF_LABELS)
+    ax3.set_yticks(range(len(BANDWIDTHS)))
+    ax3.set_yticklabels(BANDWIDTH_LABELS)
+    ax3.set_xlabel('Spreading Factor')
+    ax3.set_ylabel('Bandwidth')
+    ax3.set_title('Link Budget × Bit Rate\n(Figure of Merit)')
 
-# Format helper for FoM
-def fmt_fom(v):
-    if v >= 1e6:
-        return f'{v/1e6:.1f}M'
-    elif v >= 1e3:
-        return f'{v/1e3:.0f}k'
-    return f'{v:.0f}'
+    def fmt_fom(v):
+        if v >= 1e6:
+            return f'{v/1e6:.1f}M'
+        elif v >= 1e3:
+            return f'{v/1e3:.0f}k'
+        return f'{v:.0f}'
 
-# Add value annotations
-fom_mid = (np.log10(fom_cr5.min()) + np.log10(fom_cr5.max())) / 2
-for i in range(len(BANDWIDTHS)):
-    bw = BANDWIDTHS[i]
-    for j in range(len(SF_RANGE)):
-        sf = SF_RANGE[j]
-        val5 = fom_cr5[i, j]
-        val8 = fom_cr8[i, j]
+    fom_mid = (np.log10(fom_cr5.min()) + np.log10(fom_cr5.max())) / 2
+    for i in range(len(BANDWIDTHS)):
+        bw = BANDWIDTHS[i]
+        for j in range(len(SF_RANGE)):
+            sf = SF_RANGE[j]
+            val5 = fom_cr5[i, j]
+            val8 = fom_cr8[i, j]
 
-        cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
+            cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
 
-        txt = f'{cr5_pfx}CR5:{fmt_fom(val5)}\n{cr8_pfx}CR8:{fmt_fom(val8)}'
-        weight = 'bold' if marked else 'normal'
-        ax3.text(j, i, txt, ha='center', va='center',
-                 color='white' if np.log10(val5) < fom_mid else 'black',
-                 fontsize=6, fontweight=weight)
+            txt = f'{cr5_pfx}CR5:{fmt_fom(val5)}\n{cr8_pfx}CR8:{fmt_fom(val8)}'
+            weight = 'bold' if marked else 'normal'
+            ax3.text(j, i, txt, ha='center', va='center',
+                     color='white' if np.log10(val5) < fom_mid else 'black',
+                     fontsize=6, fontweight=weight)
 
-fig.colorbar(im3, ax=ax3, label='Link Budget × Bit Rate (log₁₀)')
+    fig.colorbar(im3, ax=ax3, label='Link Budget × Bit Rate (log₁₀)')
 
-# Plot 4: dB per bps (Range Efficiency)
-bps_per_db_cr5 = bitrate_cr5 / link_budget
-bps_per_db_cr8 = bitrate_cr8 / link_budget
+    # Plot 4: dB per bps (Range Efficiency)
+    bps_per_db_cr5 = bitrate_cr5 / link_budget
+    bps_per_db_cr8 = bitrate_cr8 / link_budget
 
-im4 = ax4.imshow(np.log10(bps_per_db_cr8), cmap='cividis', aspect='auto')
-ax4.set_xticks(range(len(SF_RANGE)))
-ax4.set_xticklabels(SF_LABELS)
-ax4.set_yticks(range(len(BANDWIDTHS)))
-ax4.set_yticklabels(BANDWIDTH_LABELS)
-ax4.set_xlabel('Spreading Factor')
-ax4.set_ylabel('Bandwidth')
-ax4.set_title('Bit Rate/ Link Budget (bps/dB)\nHigher = Throughput per Range')
+    im4 = ax4.imshow(np.log10(bps_per_db_cr8), cmap='cividis', aspect='auto')
+    ax4.set_xticks(range(len(SF_RANGE)))
+    ax4.set_xticklabels(SF_LABELS)
+    ax4.set_yticks(range(len(BANDWIDTHS)))
+    ax4.set_yticklabels(BANDWIDTH_LABELS)
+    ax4.set_xlabel('Spreading Factor')
+    ax4.set_ylabel('Bandwidth')
+    ax4.set_title('Bit Rate/ Link Budget (bps/dB)\nHigher = Throughput per Range')
 
-# Add value annotations
-db_per_bps_mid = (np.log10(bps_per_db_cr8.min()) + np.log10(bps_per_db_cr8.max())) / 2
-for i in range(len(BANDWIDTHS)):
-    bw = BANDWIDTHS[i]
-    for j in range(len(SF_RANGE)):
-        sf = SF_RANGE[j]
-        val5 = bps_per_db_cr5[i, j]
-        val8 = bps_per_db_cr8[i, j]
+    db_per_bps_mid = (np.log10(bps_per_db_cr8.min()) + np.log10(bps_per_db_cr8.max())) / 2
+    for i in range(len(BANDWIDTHS)):
+        bw = BANDWIDTHS[i]
+        for j in range(len(SF_RANGE)):
+            sf = SF_RANGE[j]
+            val5 = bps_per_db_cr5[i, j]
+            val8 = bps_per_db_cr8[i, j]
 
-        cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
+            cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
 
-        txt = f'{cr5_pfx}CR5:{val5:.2f}\n{cr8_pfx}CR8:{val8:.2f}'
-        weight = 'bold' if marked else 'normal'
-        ax4.text(j, i, txt, ha='center', va='center',
-                 color='white' if np.log10(val5) < db_per_bps_mid else 'black',
-                 fontsize=6, fontweight=weight)
+            txt = f'{cr5_pfx}CR5:{val5:.2f}\n{cr8_pfx}CR8:{val8:.2f}'
+            weight = 'bold' if marked else 'normal'
+            ax4.text(j, i, txt, ha='center', va='center',
+                     color='white' if np.log10(val5) < db_per_bps_mid else 'black',
+                     fontsize=6, fontweight=weight)
 
-fig.colorbar(im4, ax=ax4, label='bps/dB (log₁₀)')
+    fig.colorbar(im4, ax=ax4, label='bps/dB (log₁₀)')
 
-# Format helper for time
-def fmt_time(v):
-    if v >= 1000:
-        return f'{v/1000:.1f}s'
-    return f'{v:.0f}ms'
+    def fmt_time(v):
+        if v >= 1000:
+            return f'{v/1000:.1f}s'
+        return f'{v:.0f}ms'
 
-# Plot 5: Time on Air (1-byte payload)
-im5 = ax5.imshow(np.log10(toa_1byte_cr5), cmap='RdYlGn_r', aspect='auto')
-ax5.set_xticks(range(len(SF_RANGE)))
-ax5.set_xticklabels(SF_LABELS)
-ax5.set_yticks(range(len(BANDWIDTHS)))
-ax5.set_yticklabels(BANDWIDTH_LABELS)
-ax5.set_xlabel('Spreading Factor')
-ax5.set_ylabel('Bandwidth')
-ax5.set_title('Time on Air (1-byte payload)\nLower = Better')
+    # Plot 5: Time on Air (1-byte payload)
+    im5 = ax5.imshow(np.log10(toa_1byte_cr5), cmap='RdYlGn_r', aspect='auto')
+    ax5.set_xticks(range(len(SF_RANGE)))
+    ax5.set_xticklabels(SF_LABELS)
+    ax5.set_yticks(range(len(BANDWIDTHS)))
+    ax5.set_yticklabels(BANDWIDTH_LABELS)
+    ax5.set_xlabel('Spreading Factor')
+    ax5.set_ylabel('Bandwidth')
+    ax5.set_title('Time on Air (1-byte payload)\nLower = Better')
 
-# Add value annotations
-for i in range(len(BANDWIDTHS)):
-    bw = BANDWIDTHS[i]
-    for j in range(len(SF_RANGE)):
-        sf = SF_RANGE[j]
-        val5 = toa_1byte_cr5[i, j]
-        val8 = toa_1byte_cr8[i, j]
+    for i in range(len(BANDWIDTHS)):
+        bw = BANDWIDTHS[i]
+        for j in range(len(SF_RANGE)):
+            sf = SF_RANGE[j]
+            val5 = toa_1byte_cr5[i, j]
+            val8 = toa_1byte_cr8[i, j]
 
-        cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
+            cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
 
-        txt = f'{cr5_pfx}CR5:{fmt_time(val5)}\n{cr8_pfx}CR8:{fmt_time(val8)}'
-        weight = 'bold' if marked else 'normal'
-        ax5.text(j, i, txt, ha='center', va='center', color='black',
-                 fontsize=6, fontweight=weight)
+            txt = f'{cr5_pfx}CR5:{fmt_time(val5)}\n{cr8_pfx}CR8:{fmt_time(val8)}'
+            weight = 'bold' if marked else 'normal'
+            ax5.text(j, i, txt, ha='center', va='center', color='black',
+                     fontsize=6, fontweight=weight)
 
-fig.colorbar(im5, ax=ax5, label='Time on Air (log₁₀ ms)')
+    fig.colorbar(im5, ax=ax5, label='Time on Air (log₁₀ ms)')
 
-# Plot 6: Time on Air (250-byte payload)
-im6 = ax6.imshow(np.log10(toa_250byte_cr5), cmap='RdYlGn_r', aspect='auto')
-ax6.set_xticks(range(len(SF_RANGE)))
-ax6.set_xticklabels(SF_LABELS)
-ax6.set_yticks(range(len(BANDWIDTHS)))
-ax6.set_yticklabels(BANDWIDTH_LABELS)
-ax6.set_xlabel('Spreading Factor')
-ax6.set_ylabel('Bandwidth')
-ax6.set_title('Time on Air (250-byte payload)\nLower = Better')
+    # Plot 6: Time on Air (250-byte payload)
+    im6 = ax6.imshow(np.log10(toa_250byte_cr5), cmap='RdYlGn_r', aspect='auto')
+    ax6.set_xticks(range(len(SF_RANGE)))
+    ax6.set_xticklabels(SF_LABELS)
+    ax6.set_yticks(range(len(BANDWIDTHS)))
+    ax6.set_yticklabels(BANDWIDTH_LABELS)
+    ax6.set_xlabel('Spreading Factor')
+    ax6.set_ylabel('Bandwidth')
+    ax6.set_title('Time on Air (250-byte payload)\nLower = Better')
 
-# Add value annotations
-for i in range(len(BANDWIDTHS)):
-    bw = BANDWIDTHS[i]
-    for j in range(len(SF_RANGE)):
-        sf = SF_RANGE[j]
-        val5 = toa_250byte_cr5[i, j]
-        val8 = toa_250byte_cr8[i, j]
+    for i in range(len(BANDWIDTHS)):
+        bw = BANDWIDTHS[i]
+        for j in range(len(SF_RANGE)):
+            sf = SF_RANGE[j]
+            val5 = toa_250byte_cr5[i, j]
+            val8 = toa_250byte_cr8[i, j]
 
-        cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
+            cr5_pfx, cr8_pfx, marked = get_markers(bw, sf)
 
-        txt = f'{cr5_pfx}CR5:{fmt_time(val5)}\n{cr8_pfx}CR8:{fmt_time(val8)}'
-        weight = 'bold' if marked else 'normal'
-        ax6.text(j, i, txt, ha='center', va='center', color='black',
-                 fontsize=6, fontweight=weight)
+            txt = f'{cr5_pfx}CR5:{fmt_time(val5)}\n{cr8_pfx}CR8:{fmt_time(val8)}'
+            weight = 'bold' if marked else 'normal'
+            ax6.text(j, i, txt, ha='center', va='center', color='black',
+                     fontsize=6, fontweight=weight)
 
-fig.colorbar(im6, ax=ax6, label='Time on Air (log₁₀ ms)')
+    fig.colorbar(im6, ax=ax6, label='Time on Air (log₁₀ ms)')
 
-# Add legend for defaults
-legend_line1 = '[L] = LoRaWAN (125kHz, CR4/5)    |    [C] = MeshCore EU (125kHz, SF9, CR4/8)'
-legend_line2 = ('Meshtastic presets — '
-                'LF: Long Fast (250k/SF11/CR5)  '
-                'LS: Long Slow (125k/SF12/CR8)  '
-                'LMo: Long Moderate (125k/SF11/CR8)  '
-                'MF: Med Fast (250k/SF9/CR5)')
-legend_line3 = ('MS: Med Slow (250k/SF10/CR5)  '
-                'ShF: Short Fast (250k/SF7/CR5)  '
-                'ShS: Short Slow (250k/SF8/CR5)  '
-                'ST: Short Turbo (500k/SF7/CR5)')
+    # Add legend for defaults
+    legend_line1 = '[L] = LoRaWAN (125kHz, CR4/5)    |    [C] = MeshCore EU (125kHz, SF9, CR4/8)'
+    legend_line2 = ('Meshtastic presets — '
+                    'LF: Long Fast (250k/SF11/CR5)  '
+                    'LS: Long Slow (125k/SF12/CR8)  '
+                    'LMo: Long Moderate (125k/SF11/CR8)  '
+                    'MF: Med Fast (250k/SF9/CR5)')
+    legend_line3 = ('MS: Med Slow (250k/SF10/CR5)  '
+                    'ShF: Short Fast (250k/SF7/CR5)  '
+                    'ShS: Short Slow (250k/SF8/CR5)  '
+                    'ST: Short Turbo (500k/SF7/CR5)')
 
-fig.text(0.5, 0.055, legend_line1, ha='center', fontsize=8, fontweight='bold')
-fig.text(0.5, 0.033, legend_line2, ha='center', fontsize=8)
-fig.text(0.5, 0.013, legend_line3, ha='center', fontsize=8)
+    fig.text(0.5, 0.055, legend_line1, ha='center', fontsize=8, fontweight='bold')
+    fig.text(0.5, 0.033, legend_line2, ha='center', fontsize=8)
+    fig.text(0.5, 0.013, legend_line3, ha='center', fontsize=8)
 
-plt.tight_layout(rect=[0, 0.07, 1, 1])
-plt.savefig('lora_charts.png', dpi=150)
-plt.show()
-
-print("Chart saved to lora_charts.png")
+    plt.tight_layout(rect=[0, 0.07, 1, 1])
+    if args.png:
+        plt.savefig('lora_charts.png', dpi=150)
+        print("Saved lora_charts.png")
+    if args.svg:
+        plt.savefig('lora_charts.svg')
+        print("Saved lora_charts.svg")
+    if args.show:
+        plt.show()
 
 # Print some key values
 print("\n=== Link Budget (dB) ===")

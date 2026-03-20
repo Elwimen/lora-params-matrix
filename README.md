@@ -30,7 +30,7 @@ A 2×3 grid of annotated heatmaps covering:
 
 ## Chart
 
-![LoRa Parameters Matrix](lora_charts.png)
+![LoRa Parameters Matrix](lora_charts.svg)
 
 ## Usage
 

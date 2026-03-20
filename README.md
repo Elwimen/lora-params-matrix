@@ -28,6 +28,10 @@ A 2×3 grid of annotated heatmaps covering:
 | `ShS` | Meshtastic Short Slow | 250kHz, SF8, CR4/5 |
 | `ST`  | Meshtastic Short Turbo | 500kHz, SF7, CR4/5 |
 
+## Chart
+
+![LoRa Parameters Matrix](lora_charts.png)
+
 ## Usage
 
 ```bash
